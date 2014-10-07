@@ -1,0 +1,26 @@
+Edit the file Exercise1.hs and define the "undefined" code given
+there.  More instructions are given in the file as comments. When you
+are done, submit in Canvas, when the exercise is available in Canvas.
+
+To run the test bench, type, in a terminal, in the folder containing
+Exercise1.hs,
+
+  $ make
+
+This will run your Exercise1.hs file and tell you which fragments pass
+our tests. 
+
+                    W A R N I N G S
+
+(1) Don't change the other files in the folder containing
+Exercise1.hs, and keep them there, and don't remove the module name,
+as otherwise the test bench won't work, which is what we use for
+automatic marking.
+
+(2) For your submission to get a non-zero mark, it is necessary that
+your file compiles without syntax errors. 
+
+A file with syntax errors get zero as its mark, even if some portions
+of it would compile without modification and pass the test.
+
+(3) Only questions that pass the test bench can get any mark.
