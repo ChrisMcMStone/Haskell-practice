@@ -1,0 +1,53 @@
+How to manipulate complex data types in FP...
+
+INTERPRETER FOR WHILE-LANGUAGE
+
+
+
+Input: While-program - Concrete syntax
+        
+        --> lexical analysis
+                list of tokens
+        --> parser
+                while program in abstract syntax (parse tree)
+        --> interpreter
+
+Ouput: Result of running while program
+
+
+
+TODAY - Interpreter 
+
+data Program = VariableName := Expr
+             | IfThenElse Expr Program Program
+             | IfThen Expr Program
+             | While Expr Program
+             | Block [Program]
+             deriving Show
+
+:=   --> infix notation for variable assignment
+
+                IfThenElse
+             /       |       \
+            /        |          \
+Constant 7          :=         
+                  /    \
+               "x"     op
+                      /  \
+                    Add   [Var "x", Contant 1]
+
+
+To evaluate a given expression, we need to know the values of the variables, which are stored in a 'store'
+
+store :: [(VariableName, Value)]
+
+Running the program converts one store to another
+
+run :: Program -> Store -> Store
+
+to do the while loop take inspiration from the way the block is implemented
+run program many times until condition is false
+firsty: understand runHelper
+        understand 'while' in the lecture
+
+

@@ -21,6 +21,9 @@ exprShow (Div e1 e2)  = "(" ++ exprShow e1 ++ " / " ++ exprShow e2 ++ ")"
 eExample :: Expr
 eExample = Add (Mul (Constant 2) (Constant 4)) (Constant 5)
 
+eExample2 :: Expr
+eExample2 = Add (Constant 3) (Add (Constant 5) (Constant 6))
+
 eval :: Expr -> Int
 eval (Constant n) = n
 eval (Add e1 e2)  = eval e1 + eval e2
@@ -35,8 +38,6 @@ eval (Div e1 e2)  = eval e1 `div` eval e2
 data Result = Value Int | Error
      deriving (Eq, Show)
 
-intValue :: Result -> Int
-intValue (Value n) = n
 
 eval' :: Expr -> Result
 eval' (Constant n) = Value n
@@ -63,11 +64,11 @@ mul (Value m) (Value n) = Value (m*n)
 div' :: Result -> Result -> Result
 div'  _ Error = Error
 div' Error _ = Error
-div' (Value m) (Value 0) = Error
+div' (Value _) (Value 0) = Error
 div' (Value m) (Value n) = Value (m `div` n)
 
 expr1 :: Expr
-expr1 = (Add (Constant 1) (Div (Constant 1) (Constant 0)))
+expr1 = Add (Constant 1) (Div (Constant 1) (Constant 0))
 
 -- Note. Result type is isomorphics to Maybe Int type. As we will see later,
 -- Maybe will provide a convenient type for working with fault-sensitive
@@ -80,15 +81,71 @@ expr1 = (Add (Constant 1) (Div (Constant 1) (Constant 0)))
 -- of needed brackets are used. That is: you should not distinguish between a
 -- + (b + c) and (a + b) + c, but you should use parentheses to distinguish
 -- between a * b + c and a * (b + c).
-
+--
 cleverShow :: Expr -> String
-cleverShow = undefined
+cleverShow (Constant n) = show n
 
--- Use cleverShow to define a function which for an expression outputs "E = V"
+cleverShow (Add e1 e2) = cleverShow e1 ++ " + " ++ cleverShow e2
+
+cleverShow (Sub e1 e2) = case needBracketMorDl e2 of
+                              True -> cleverShow e1 ++ " - " ++ "(" ++ cleverShow e2 ++ ")"
+                              False -> cleverShow e1 ++ " - " ++ cleverShow e2
+
+cleverShow (Mul e1 e2) = case (needBracketMorDl e1, needBracketMorDl e2) of 
+                               (True, True) -> "(" ++ cleverShow e1 ++ ")" ++ " * " ++ "(" ++ cleverShow e2 ++ ")"
+                               (True, False) -> "(" ++ cleverShow e1 ++ ")" ++ " * " ++ cleverShow e2
+                               (False, True) -> cleverShow e1 ++ " * " ++ "(" ++ cleverShow e2 ++ ")"
+                               (False, False) -> cleverShow e1 ++ " * " ++ cleverShow e2
+
+cleverShow (Div e1 e2) = case (needBracketMorDl e1, needBracketD e2) of
+                                 (True, True) -> "(" ++ cleverShow e1 ++ ")" ++ " / " ++ "(" ++ cleverShow e2 ++ ")"
+                                 (True, False) -> "(" ++ cleverShow e1 ++ ")" ++ " / " ++ cleverShow e2
+                                 (False, True) -> cleverShow e1  ++ " / " ++ "(" ++ cleverShow e2 ++ ")"
+                                 (False, False) -> cleverShow e1 ++ " / " ++ cleverShow e2
+
+--Output: "(1 * 4 * -5 * -5 - (-6 - 5) * -4 * -4) / (3 / (-9 / -9) / ((0 + 2) / (3))) = Error"
+--Expected output: "(1 * 4 * -5 * -5 - (-6 - 5) * -4 * -4) / (3 / (-9 / -9) / ((0 + 2) / 3)) = Error"
+-- 3 * 4 / 6 * 3
+--(-6 * -3) / -6 / 8 
+--  -6 * -3 / (-6 / 8)
+
+needBracketMorDl :: Expr -> Bool
+needBracketMorDl (Add _ _) = True
+needBracketMorDl (Sub _ _) = True
+needBracketMorDl _ = False
+
+needBracketD :: Expr -> Bool
+needBracketD (Add _ _) = True
+needBracketD (Sub _ _) = True
+needBracketD (Mul _ _) = True
+needBracketD (Div _ _) = True
+needBracketD _ = False
+
+needBracketSr :: Expr -> Bool
+needBracketSr (Sub _ _) = True
+needBracketSr (Add _ _) = True
+needBracketSr _ = False
+
+{-
+ -needBracketD :: Expr -> Bool
+ -needBracketD
+ -needBracketD
+ -
+ -}
+-- (2 * 8) / (4 / 8)
+-- 2 * 8 - 4 * 8
+
+-- use clevershow to define a function which for an expression outputs "e = v"
 -- where E is just cleverly shown the original expression expression and V is
 -- the result of evaluation. In case it is Error, V should be just "Error".
+
+show' :: Result -> String
+show' (Value x) = show x
+show' Error = "Error"
+
 showWithOutput :: Expr -> String
-showWithOutput = undefined
+showWithOutput e = case eval' e of Error -> cleverShow e ++ " = " ++ show' Error 
+                                   (Value x) -> cleverShow e ++ " = " ++ show x
 
 -- We can define our own type of sequences:
 
@@ -99,42 +156,77 @@ data Sequence a = Empty | Cons a (Sequence a)
 -- defining the following functions. 10 points.
 
 toNormal :: Sequence a -> [a]
-toNormal = undefined
+toNormal Empty = []
+toNormal (Cons x xs) = x : toNormal xs
 
 fromNormal :: [a] -> Sequence a
-fromNormal = undefined
+fromNormal = foldr Cons Empty
+
+mySeq :: Sequence Int
+mySeq = Cons 3 (Cons 4 (Cons 5 Empty))
+
+mySeq2 :: Sequence Int
+mySeq2 = Cons 6 (Cons 7 (Cons 8 Empty))
 
 -- Exercise. Define a sequenceMap function satisfying
 --
 -- sequenceMap f (Cons x0 (Cons x1 (Cons x2 ... Empty)))
 --       = (Cons (f x0) (Cons (f x1) (Cons (f x2) ... Empty)))
 --
--- E.g. sequenceMap odd (Cons 3 (Cons 4 (Cons 5 Empty))) = Cons True (Cons False (Cons True Empty))
+-- E.g. sequenceMap odd (cons 3 (cons 4 (cons 5 empty))) = cons true (cons false (cons true empty))
 -- 10 points.
 
 sequenceMap :: (a -> b) -> Sequence a -> Sequence b
-sequenceMap = undefined
+sequenceMap _ Empty = Empty
+sequenceMap f (Cons x xs) = Cons (f x) (sequenceMap f xs)
 
 -- Exercise. Define a function which for two sequences computes their
 -- concatenation. 10 points.
 sequenceAppend :: Sequence a -> Sequence a -> Sequence a
-sequenceAppend = undefined
+sequenceAppend Empty Empty = Empty
+sequenceAppend Empty b = b
+sequenceAppend a Empty = a
+sequenceAppend (Cons x Empty) b = Cons x b
+sequenceAppend (Cons x xs) b = Cons x $ sequenceAppend xs b
 
 -- Exercise. Define a function which appends sequence of sequences together.
 -- 10 points.
 --
 -- For example, for the sequence
---   Cons (Cons 1 (Cons 2 Empty)) (Cons (Cons 3 (Cons 4 Empty)) Empty)
+--   (Cons (Cons 1 (Cons 2 Empty)) (Cons (Cons 3 (Cons 4 Empty)) Empty))
 -- return
---   Cons 1 (Cons 2 (Cons 3 (Cons 4 Empty)))
+--   (Cons 1 (Cons 2 (Cons 3 (Cons 4 Empty))))
+
 sequenceFlatten :: Sequence (Sequence a) -> Sequence a
-sequenceFlatten = undefined
+sequenceFlatten Empty = Empty
+sequenceFlatten (Cons Empty xs) = sequenceFlatten xs
+sequenceFlatten (Cons x xs) = sequenceAppend x (sequenceFlatten xs)
 
 -- Exercise. Define a function which splits a sequence into two halfs of equal
 -- length, or with the first half one element longer if the length of the
 -- sequence is odd. 10 points.
+--
 sequenceSplit :: Sequence a -> (Sequence a, Sequence a)
-sequenceSplit = undefined
+sequenceSplit Empty = (Empty, Empty)
+sequenceSplit z = let len = sequenceLength z 
+                      half = len `div` 2 
+                      in
+                        case len `mod` 2 of 0 -> (sequenceTake z half, sequenceDrop z half)
+                                            _ -> (sequenceTake z $ half + 1, sequenceDrop z $ half + 1)
+
+sequenceTake :: Sequence a -> Int -> Sequence a
+sequenceTake Empty _ = Empty
+sequenceTake _ 0 = Empty
+sequenceTake (Cons x xs) n = Cons x $ sequenceTake xs $ n-1
+
+sequenceDrop :: Sequence a -> Int -> Sequence a
+sequenceDrop Empty _ = Empty
+sequenceDrop x 0 = x
+sequenceDrop (Cons _ xs) n = sequenceDrop xs $ n-1
+
+sequenceLength :: Sequence a -> Int
+sequenceLength Empty = 0
+sequenceLength (Cons _ xs) = 1 + sequenceLength xs
 
 -- Now consider trees.
 
@@ -144,23 +236,30 @@ data Tree' a = Leaf' a | Fork'   (Tree' a) (Tree' a) deriving (Show, Eq)
 -- Exercise. Write treeMap which applies a function from the argument to
 -- every element in the Tree. 10 points:
 treeMap :: (a -> b) -> Tree a -> Tree b
-treeMap = undefined
+treeMap _ Leaf = Leaf
+treeMap f (Fork x l r) = Fork (f x) (treeMap f l) (treeMap f r)
 
 -- Exercise. The same as above but for Tree'.
 -- 10 points:
 treeMap' :: (a -> b) -> Tree' a -> Tree' b
-treeMap' = undefined
+treeMap' f (Leaf' a) = Leaf' $ f a
+treeMap' f (Fork' l r) = Fork' (treeMap' f l) (treeMap' f r)
 
 
 -- Bonus Exercise, 10 points. Write a function
 
 treeFold :: (b -> b -> b) -> Tree' b -> b
-treeFold f = undefined
+treeFold _ (Leaf' x) = x
+treeFold f (Fork' l r) = f (treeFold f l) (treeFold f r)
 
 -- and show that it can be used to define a flattening function which returns a
 -- list of elements in the leafs of the tree in order given by Depth First
 -- Search algorithm.
 --
+
+myTree :: Tree' Integer
+myTree = Fork' (Fork' (Leaf' 1) (Leaf' 2)) (Leaf' 3)
+
 -- For example for the tree
 --        .
 --       / \
@@ -172,5 +271,7 @@ treeFold f = undefined
 -- Hint: remember your lectures in Foundations 2 about tree traversals
 -- (in-order, post-order, depth-first etc.)
 
+
 treeFlatten :: Tree' a -> [a]
-treeFlatten t = undefined
+treeFlatten = treeFold (++) . treeMap' (:[]) 
+
