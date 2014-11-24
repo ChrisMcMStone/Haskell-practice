@@ -1,0 +1,60 @@
+SPECIFICATION OF LEXER
+
+----------------------------------------
+
+data OurXML = NumElement Integer
+            | StringElement String
+            | Tag String [OurXML]
+    deriving (Show, Read, Eq)
+
+----------------------------------------
+
+<MyShoppingList>
+    <Item> 'milk' 1 </Item>
+    <Item> 'bread' 'five' </Item>
+ </MyShoppingList>
+
+Tag "MyShoppingList" [
+    Tag "Item" [
+        StringElement "milk",
+        NumElement 1],
+    Tag "Item" [
+        StringElement "bread",
+        StringElement "five"]]
+
+----------------------------------------
+data Token = Number Integer (including -x) 
+           | Word String     
+           | OpenTag String 
+           | CloseTag String
+    deriving (Show, Eq)
+
+----------------------------------------
+SYNTACTICAL ERRORS
+----------------------------------------
+
+ <MyShoppingList>
+    <Item> 'milk' 1 </Item>
+    <Item> 'orange' 3 </Item>
+    <Item> 'bread' 'five' </Item>
+ </MyShoppinglist>
+
+That's because the tags MyShoppingList and MyShoppinglist are not
+quite the same. 
+
+Another example of a syntactical error is this:
+
+ <MyShoppingList>
+    <Item> 'milk' 1 </Item>
+    <Item> 'orange' 3 
+    <Item> 'bread' 'five' </Item>
+ </MyShoppingList>
+
+A final syntactical error is the following:
+
+- 3 5
+
+The reason is that the string we're parsing contains multiple XML nodes:
+NumElement 3 and NumElement 5. The string must contain exactly one node.
+
+
